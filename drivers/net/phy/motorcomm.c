@@ -294,6 +294,10 @@ struct yt8521_priv {
 	u8 reg_page;
 };
 
+/* static functions called during probel */
+static int yt8521_soft_reset(struct phy_device *phydev);
+static int yt8521_config_init(struct phy_device *phydev);
+
 /**
  * ytphy_read_ext() - read a PHY's extended register
  * @phydev: a pointer to a &struct phy_device
@@ -969,6 +973,9 @@ static int yt8521_probe(struct phy_device *phydev)
 		return -ENOMEM;
 
 	phydev->priv = priv;
+
+	yt8521_soft_reset(phydev);
+	yt8521_config_init(phydev);
 
 	chip_config = ytphy_read_ext_with_lock(phydev, YT8521_CHIP_CONFIG_REG);
 	if (chip_config < 0)

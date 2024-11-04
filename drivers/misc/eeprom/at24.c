@@ -25,6 +25,7 @@
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
+#include <linux/sysfs.h>
 
 /* Address pointer is 16 bit. */
 #define AT24_FLAG_ADDR16	BIT(7)
@@ -75,6 +76,8 @@ struct at24_data {
 	 * but not from changes by other I2C masters.
 	 */
 	struct mutex lock;
+
+	struct bin_attribute bin;
 
 	unsigned int write_max;
 	unsigned int num_addresses;
@@ -583,6 +586,42 @@ static void at24_probe_temp_sensor(struct i2c_client *client)
 	i2c_new_client_device(client->adapter, &info);
 }
 
+static ssize_t at24_bin_read(struct file *filp, struct kobject *kobj,
+			struct bin_attribute *attr,
+			char *buf, loff_t off, size_t count)
+{
+	int ret;
+	struct at24_data *at24;
+
+	at24 = dev_get_drvdata(container_of(kobj, struct device, kobj));
+	ret = at24_read(at24, off, buf, count);
+	if (ret == 0) {
+		return count;
+	} else if (ret > 0) {
+		return 0;
+	} else {
+		return ret;
+	}
+}
+
+static ssize_t at24_bin_write(struct file *filp, struct kobject *kobj,
+			struct bin_attribute *attr,
+			char *buf, loff_t off, size_t count)
+{
+	int ret;
+	struct at24_data *at24;
+
+	at24 = dev_get_drvdata(container_of(kobj, struct device, kobj));
+	ret = at24_write(at24, off, buf, count);
+	if (ret == 0) {
+		return count;
+	} else if (ret > 0) {
+		return 0;
+	} else {
+		return ret;
+	}
+}
+
 static int at24_probe(struct i2c_client *client)
 {
 	struct regmap_config regmap_config = { };
@@ -693,6 +732,19 @@ static int at24_probe(struct i2c_client *client)
 	at24->offset_adj = at24_get_offset_adj(flags, byte_len);
 	at24->client_regmaps[0] = regmap;
 
+	/*
+	* Export the EEPROM bytes through sysfs, since that's convenient.
+	* By default, only root should see the data (maybe passwords etc)
+	*/
+	sysfs_bin_attr_init(&at24->bin);
+	at24->bin.attr.name = kzalloc(strlen(client->name) + 1, GFP_KERNEL);
+	snprintf(at24->bin.attr.name, strlen(client->name) + 1,
+		"%s", client->name);
+	//at24->bin.attr.name = "at24xxx";
+	at24->bin.attr.mode = flags & AT24_FLAG_IRUGO ? S_IRUGO : S_IRUSR;
+	at24->bin.read = at24_bin_read;
+	at24->bin.size = byte_len;
+
 	at24->vcc_reg = devm_regulator_get(dev, "vcc");
 	if (IS_ERR(at24->vcc_reg))
 		return PTR_ERR(at24->vcc_reg);
@@ -703,7 +755,13 @@ static int at24_probe(struct i2c_client *client)
 					page_size, at24_io_limit);
 		if (!i2c_fn_i2c && at24->write_max > I2C_SMBUS_BLOCK_MAX)
 			at24->write_max = I2C_SMBUS_BLOCK_MAX;
+		at24->bin.write = at24_bin_write;
+		at24->bin.attr.mode |= S_IWUSR;
 	}
+
+	err = sysfs_create_bin_file(&client->dev.kobj, &at24->bin);
+	if (err)
+		return err;
 
 	/* use dummy devices for multiple-address chips */
 	for (i = 1; i < num_addresses; i++) {
@@ -808,6 +866,7 @@ static void at24_remove(struct i2c_client *client)
 			regulator_disable(at24->vcc_reg);
 		pm_runtime_set_suspended(&client->dev);
 	}
+	sysfs_remove_bin_file(&client->dev.kobj, &at24->bin);
 }
 
 static int __maybe_unused at24_suspend(struct device *dev)

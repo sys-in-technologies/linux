@@ -585,6 +585,12 @@ config NSM
 	  To compile this driver as a module, choose M here.
 	  The module will be called nsm.
 
+config DERG_GPIO
+	tristate "DERG GPIO driver"
+	default n
+	help
+	  You can use this driver to contorl DERG gpio.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"

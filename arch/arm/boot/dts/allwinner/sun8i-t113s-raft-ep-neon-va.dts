@@ -19,13 +19,81 @@
         chosen {
                stdout-path = "serial0:115200n8";
         };
-};
 
-&rgmii_pe_pins {
-        pins = "PE0", "PE1", "PE2", "PE3", "PE4",
-	"PE5", "PE6", "PE7", "PE8", "PE9", "PE10",
-	"PE11", "PE12", "PE13", "PE14", "PE15";
-	function = "emac";
+        chipid{
+                compatible = "sunxi-chipid";
+                reg = <0x03006000 0x1000>;
+                status = "okay";
+        };
+
+        derg-leds {
+                compatible = "gpio-leds";
+                led0 {
+                        label = "led1";
+                        gpios = <&pio 3 14 GPIO_ACTIVE_LOW>;
+                        default-state = "off";
+                };
+                led1 {
+                        label = "led2";
+                        gpios = <&pio 3 15 GPIO_ACTIVE_LOW>;
+                        default-state = "off";
+                };
+                led2 {
+                        label = "led3";
+                        gpios = <&pio 3 16 GPIO_ACTIVE_LOW>;
+                        default-state = "off";
+                };
+                led3 {
+                        label = "led4";
+                        gpios = <&pio 3 17 GPIO_ACTIVE_LOW>;
+                        default-state = "off";
+                };
+                led4 {
+                        label = "led5";
+                        gpios = <&pio 3 18 GPIO_ACTIVE_LOW>;
+                        default-state = "off";
+                };
+        };
+
+	derg-gpiokey {
+		compatible = "gpio-keys";
+
+                fun1key {
+                        device_type = "fun1key";
+                        label = "fun1key";
+                        gpios = <&pio 3 6 GPIO_ACTIVE_LOW>;
+                        linux,input-type = <1>;
+                        linux,code = <139>;
+			debounce-interval = <5>;
+			gpio-key,wakeup;
+                };
+
+                blekey {
+                        device_type = "blekey";
+                        label = "blekey";
+                        gpios = <&pio 3 12 GPIO_ACTIVE_LOW>;
+                        linux,input-type = <1>;
+                        linux,code = <140>;
+			debounce-interval = <5>;
+			gpio-key,wakeup;
+                };
+	};
+
+	derg-gpio-para {
+                compatible = "allwinner,sunxi-t113-derg";
+
+                derg-mesh-en-gpios = <&pio 3 5 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+                derg-wifi-en-gpios = <&pio 3 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+                derg-ble-en-gpios = <&pio 3 20 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+                derg-ble-conn-gpios = <&pio 3 19 GPIO_ACTIVE_HIGH>;
+                derg-mesh-burn-gpios = <&pio 3 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+	};
+
+	watchdog {
+		compatible = "allwinner,sun20i-d1-wdt";
+		reg = <0x020500A0 0x20>;
+	};
+
 };
 
 &pio {
@@ -35,6 +103,36 @@
 	        "PG11", "PG12", "PG13", "PG14", "PG15";
 	        function = "emac";
         };
+
+	ble_uart1_pins: ble_uart1_pins {
+		pins = "PE10", "PE11";
+		function = "uart1";
+	};
+
+	mesh1_uart5_pins: mesh1_uart5_pins {
+		pins = "PB4", "PB5";
+		function = "uart5";
+	};
+
+        mesh2_uart2_pins: mesh1_uart2_pins {
+                pins = "PD1", "PD2";
+                function = "uart2";
+        };
+
+        u485_uart3_pins: u485_uart3_pins {
+                pins = "PB6", "PB7";
+                function = "uart3";
+        };
+
+        u485_uart4_pins: u485_uart4_pins {
+                pins = "PE4", "PE5";
+                function = "uart4";
+        };
+
+	i2c2_bus_pins: i2c2_bus_pins {
+		pins = "PE12", "PE13";
+		function = "i2c2";
+	};
 };
 
 &cpu0 {
@@ -51,6 +149,36 @@
 	status = "okay";
 };
 
+&uart1 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&ble_uart1_pins>;
+        status = "okay";
+};
+
+&uart2 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&mesh2_uart2_pins>;
+        status = "okay";
+};
+
+&uart3 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&u485_uart3_pins>;
+        status = "okay";
+};
+
+&uart4 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&u485_uart4_pins>;
+        status = "okay";
+};
+
+&uart5 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&mesh1_uart5_pins>;
+        status = "okay";
+};
+
 &mmc0 {
       /delete-property/ cd-gpios;
 };
@@ -58,35 +186,34 @@
 &can0 {
        pinctrl-names = "default";
        pinctrl-0 = <&can0_pins>;
-       status = "okay";
+       status = "disable";
 };
 
 &can1 {
        pinctrl-names = "default";
        pinctrl-0 = <&can1_pins>;
-       status = "okay";
+       status = "disable";
 };
 
 &emac {
-        compatible = "allwinner,sun50i-h6-emac";
-        pinctrl-0 = <&rgmii_pg_pins>;
-        pinctrl-names = "default";
+	compatible = "allwinner,sun50i-h6-emac";
+	pinctrl-0 = <&rgmii_pg_pins>;
+	pinctrl-names = "default";
 	clocks = <&ccu CLK_BUS_EMAC>, <&ccu CLK_EMAC_25M>;
 	clock-names = "stmmaceth", "pclk";
-        phy-mode = "rgmii-rxid";
-        phy-handle = <&phy0>;
-        allwinner,tx-delay-ps = <300>;
-        allwinner,rx-delay-ps = <500>;
-        status = "okay";
+	phy-mode = "rgmii-rxid";
+	phy-handle = <&phy0>;
+	allwinner,tx-delay-ps = <300>;
+	status = "okay";
 };
 
 &mdio {
         phy0: ethernet-phy@0 {
                 reg=<0>;
-                motorcomm,clk-out-frequency-hz = <125000000>;
+                motorcomm,clk-out-frequency-hz = <0>;
                 motorcomm,auto-sleep-disabled;
                 motorcomm,keep-pll-enabled;
-                rx-internal-delay-ps = <1900>;
+                rx-internal-delay-ps = <1050>;
         };
 };
 
@@ -98,14 +225,46 @@
         status = "disable";
 };
 
-&ehci1 {
+&usbphy {
+	status = "okay";
+};
+
+&ehci0 {
         status = "disable";
 };
 
-&ohci1 {
+&ohci0 {
         status = "disable";
+};
+
+&ehci1 {
+        status = "okay";
+};
+
+&ohci1 {
+        status = "okay";
 };
 
 &usb_otg {
         status = "disable";
 };
+
+&i2c2 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c2_bus_pins>;
+
+        24c04@50 {
+                compatible = "atmel,24c04";
+                reg = <0x50>;
+		pagesize = <16>;
+		size = <512>;
+        };
+
+	rx8010@32{
+                compatible = "epson,rx8010";
+                reg = <0x32>;
+        };
+};
+
+

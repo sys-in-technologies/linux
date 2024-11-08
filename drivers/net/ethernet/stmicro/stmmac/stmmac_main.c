@@ -30,10 +30,6 @@
 #include <linux/pm_runtime.h>
 #include <linux/prefetch.h>
 #include <linux/pinctrl/consumer.h>
-#include <linux/sunxi-chip.h>
-#include <linux/crypto.h>
-#include <crypto/algapi.h>
-#include <crypto/hash.h>
 
 #ifdef CONFIG_DEBUG_FS
 #include <linux/debugfs.h>
@@ -2972,68 +2968,6 @@ static int stmmac_get_hw_features(struct stmmac_priv *priv)
 	return stmmac_get_hw_feature(priv, priv->ioaddr, &priv->dma_cap) == 0;
 }
 
-static void geth_chip_hwaddr(u8 *addr)
-{
-#define MD5_SIZE	16
-#define CHIP_SIZE	16
-
-	struct crypto_ahash *tfm;
-	struct ahash_request *req;
-	struct scatterlist sg;
-	u8 result[MD5_SIZE];
-	u8 chipid[CHIP_SIZE];
-	int i = 0;
-	int ret = -1;
-
-	memset(chipid, 0, sizeof(chipid));
-	memset(result, 0, sizeof(result));
-
-	sunxi_get_soc_chipid((u8 *)chipid);
-
-	tfm = crypto_alloc_ahash("md5", 0, CRYPTO_ALG_ASYNC);
-	if (IS_ERR(tfm)) {
-		pr_err("Failed to alloc md5\n");
-		return;
-	}
-
-	req = ahash_request_alloc(tfm, GFP_KERNEL);
-	if (!req)
-		goto out;
-
-	ahash_request_set_callback(req, 0, NULL, NULL);
-
-	ret = crypto_ahash_init(req);
-	if (ret) {
-		pr_err("crypto_ahash_init() failed\n");
-		goto out;
-	}
-
-	sg_init_one(&sg, chipid, sizeof(chipid));
-	ahash_request_set_crypt(req, &sg, result, sizeof(chipid));
-	ret = crypto_ahash_update(req);
-	if (ret) {
-		pr_err("crypto_ahash_update() failed for id\n");
-		goto out;
-	}
-
-	ret = crypto_ahash_final(req);
-	if (ret) {
-		pr_err("crypto_ahash_final() failed for result\n");
-		goto out;
-	}
-
-	ahash_request_free(req);
-
-	/* Choose md5 result's [0][2][4][6][8][10] byte as mac address */
-	for (i = 0; i < ETH_ALEN; i++)
-		addr[i] = result[2 * i];
-	addr[0] &= 0xfe; /* clear multicast bit */
-	addr[0] |= 0x02; /* set local assignment bit (IEEE802) */
-
-out:
-	crypto_free_ahash(tfm);
-}
-
 /**
  * stmmac_check_ether_addr - check if the MAC addr is valid
  * @priv: driver private structure
@@ -3047,18 +2981,10 @@ static void stmmac_check_ether_addr(struct stmmac_priv *priv)
 
 	if (!is_valid_ether_addr(priv->dev->dev_addr)) {
 		stmmac_get_umac_addr(priv, priv->hw, addr, 0);
-		if (is_valid_ether_addr(addr)) {
+		if (is_valid_ether_addr(addr))
 			eth_hw_addr_set(priv->dev, addr);
-		}
-                if (!is_valid_ether_addr(addr)) {
-                        geth_chip_hwaddr(addr);
-                }
-                if (!is_valid_ether_addr(addr)) {
+		else
                         eth_hw_addr_random(priv->dev);
-                        printk(KERN_WARNING "Use random mac address\n");
-                } else {
-			eth_hw_addr_set(priv->dev, addr);
-		}
 
 		dev_info(priv->device, "device MAC address %pM\n",
 			 priv->dev->dev_addr);

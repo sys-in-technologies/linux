@@ -20,12 +20,6 @@
                stdout-path = "serial0:115200n8";
         };
 
-        chipid{
-                compatible = "sunxi-chipid";
-                reg = <0x03006000 0x1000>;
-                status = "okay";
-        };
-
         derg-leds {
                 compatible = "gpio-leds";
                 led0 {
@@ -266,5 +260,3 @@
                 reg = <0x32>;
         };
 };
-
-

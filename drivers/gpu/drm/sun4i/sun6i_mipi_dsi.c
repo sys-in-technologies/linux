@@ -720,6 +720,7 @@ static void sun6i_dsi_encoder_enable(struct drm_encoder *encoder)
 	struct mipi_dsi_device *device = dsi->device;
 	union phy_configure_opts opts = { };
 	struct phy_configure_opts_mipi_dphy *cfg = &opts.mipi_dphy;
+	const struct sun6i_dsi_variant *variant;
 	u16 delay;
 	int err;
 
@@ -730,7 +731,29 @@ static void sun6i_dsi_encoder_enable(struct drm_encoder *encoder)
 		dev_warn(dsi->dev, "failed to enable VCC-DSI supply: %d\n", err);
 
 	reset_control_deassert(dsi->reset);
-	clk_prepare_enable(dsi->mod_clk);
+
+	/*
+	 * code moved from probe to here, because mod clock from tcon-top is
+	 * registered after component binding, staying in probe will cause
+	 * deadlock.
+	 */
+	variant = device_get_match_data(dsi->dev);
+	if (variant->has_mod_clk) {
+		dsi->mod_clk = devm_clk_get(dsi->dev, "mod");
+		if (IS_ERR(dsi->mod_clk)) {
+			dev_err(dsi->dev, "Couldn't get the DSI mod clock\n");
+		} else {
+
+			/*
+			 * In order to operate properly, the module clock on the
+			 * A31 variant always seems to be set to 297MHz.
+			 */
+			if (variant->set_mod_clk)
+				clk_set_rate_exclusive(dsi->mod_clk, 297000000);
+
+			clk_prepare_enable(dsi->mod_clk);
+		}
+	}
 
 	/*
 	 * Enable the DSI block.
@@ -808,7 +831,10 @@ static void sun6i_dsi_encoder_disable(struct drm_encoder *encoder)
 	phy_power_off(dsi->dphy);
 	phy_exit(dsi->dphy);
 
-	clk_disable_unprepare(dsi->mod_clk);
+	if (!IS_ERR(dsi->mod_clk)) {
+		clk_disable_unprepare(dsi->mod_clk);
+		clk_rate_exclusive_put(dsi->mod_clk);
+	}
 	reset_control_assert(dsi->reset);
 	regulator_disable(dsi->regulator);
 }
@@ -1152,22 +1178,6 @@ static int sun6i_dsi_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	if (variant->has_mod_clk) {
-		dsi->mod_clk = devm_clk_get(dev, "mod");
-		if (IS_ERR(dsi->mod_clk)) {
-			dev_err(dev, "Couldn't get the DSI mod clock\n");
-			ret = PTR_ERR(dsi->mod_clk);
-			goto err_attach_clk;
-		}
-
-		/*
-		 * In order to operate properly, the module clock on the
-		 * A31 variant always seems to be set to 297MHz.
-		 */
-		if (variant->set_mod_clk)
-			clk_set_rate_exclusive(dsi->mod_clk, 297000000);
-	}
-
 	dsi->dphy = devm_phy_get(dev, "dphy");
 	if (IS_ERR(dsi->dphy)) {
 		dev_err(dev, "Couldn't get the MIPI D-PHY\n");
@@ -1192,9 +1202,6 @@ static int sun6i_dsi_probe(struct platform_device *pdev)
 err_remove_dsi_host:
 	mipi_dsi_host_unregister(&dsi->host);
 err_unprotect_clk:
-	if (dsi->variant->has_mod_clk && dsi->variant->set_mod_clk)
-		clk_rate_exclusive_put(dsi->mod_clk);
-err_attach_clk:
 	regmap_mmio_detach_clk(dsi->regs);
 
 	return ret;
@@ -1207,8 +1214,6 @@ static void sun6i_dsi_remove(struct platform_device *pdev)
 
 	component_del(&pdev->dev, &sun6i_dsi_ops);
 	mipi_dsi_host_unregister(&dsi->host);
-	if (dsi->variant->has_mod_clk && dsi->variant->set_mod_clk)
-		clk_rate_exclusive_put(dsi->mod_clk);
 
 	regmap_mmio_detach_clk(dsi->regs);
 }

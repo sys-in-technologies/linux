@@ -306,7 +306,6 @@
 		power-supply = <&reg_2v8>;
 		reset-gpios = <&pio 4 1 GPIO_ACTIVE_HIGH>;
 		backlight = <&backlight>;
-		rotation = <270>;
 	};
 
 //	panel@0 {
@@ -315,7 +314,6 @@
 //		power-supply = <&reg_2v8>;
 //		reset-gpios = <&pio 4 1 GPIO_ACTIVE_HIGH>;
 //		backlight = <&backlight>;
-//		rotation = <0>;
 //	};
 };
 

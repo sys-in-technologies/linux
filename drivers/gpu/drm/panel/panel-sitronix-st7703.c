@@ -778,6 +778,7 @@ static const struct drm_display_mode p050h031_mode = {
 	.vsync_end	= 1280 + 20 + 2,
 	.vtotal		= 1280 + 20 + 2 + 14,
 	.clock		= 61904,
+	.flags		= DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_NVSYNC,
 	.width_mm	= 62,
 	.height_mm	= 109,
 };
@@ -786,7 +787,7 @@ static const struct st7703_panel_desc p050h031_desc = {
 	.mode = &p050h031_mode,
 	.lanes = 4,
 	.mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_SYNC_PULSE |
-		      MIPI_DSI_CLOCK_NON_CONTINUOUS | MIPI_DSI_MODE_LPM,
+		      MIPI_DSI_MODE_NO_EOT_PACKET | MIPI_DSI_MODE_LPM,
 	.format = MIPI_DSI_FMT_RGB888,
 	.init_sequence = p050h031_init_sequence,
 };

@@ -184,6 +184,12 @@
         status = "okay";
 };
 
+&uart3 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&uart3_pb_pins>;
+        status = "okay";
+};
+
 &mmc0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&mmc0_pins>;
@@ -220,11 +226,11 @@
 };
 
 &ehci0 {
-        status = "okay";
+        status = "disabled";
 };
 
 &ohci0 {
-        status = "okay";
+        status = "disabled";
 };
 
 &ehci1 {
@@ -245,14 +251,16 @@
 	pinctrl-0 = <&i2c2_pins>;
 
 	touchscreen@5d {
-            compatible = "goodix,gt911";
-            reg = <0x5d>;
-            interrupt-parent = <&pio>;
-            interrupts = <3 22 IRQ_TYPE_EDGE_FALLING>;
-            irq-gpios = <&pio 3 22 GPIO_ACTIVE_HIGH>;
-            reset-gpios = <&pio 3 19 GPIO_ACTIVE_LOW>;
-            touchscreen-swapped-x-y;
-    };
+		compatible = "goodix,gt911";
+		reg = <0x5d>;
+		status = "okay";
+		interrupt-parent = <&pio>;
+		interrupts = <3 22 IRQ_TYPE_EDGE_FALLING>;
+		irq-flags = <2>;	/*1:rising 2: falling*/
+		irq-gpios = <&pio 3 22 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pio 3 19 GPIO_ACTIVE_HIGH>;
+		touchscreen-swapped-x-y;
+    	};
 };
 
 &i2c3 {
@@ -267,11 +275,11 @@
 		size = <512>;
 	};
 
-	rx8010@32{
-		compatible = "epson,rx8010";
-		reg = <0x32>;
-	};
-};
+// 	rx8010@32{
+// 		compatible = "epson,rx8025";
+// 		reg = <0x32>;
+// 	};
+// };
 
 &spi1 {
 	status = "okay";

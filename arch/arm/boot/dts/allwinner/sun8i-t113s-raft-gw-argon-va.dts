@@ -260,7 +260,7 @@
 		irq-gpios = <&pio 3 22 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&pio 3 19 GPIO_ACTIVE_HIGH>;
 		touchscreen-swapped-x-y;
-    	};
+	};
 };
 
 &i2c3 {
@@ -275,11 +275,11 @@
 		size = <512>;
 	};
 
-// 	rx8010@32{
-// 		compatible = "epson,rx8025";
-// 		reg = <0x32>;
-// 	};
-// };
+	rx8025@32 {
+		compatible = "epson,rx8025";
+		reg = <0x32>;
+	};
+};
 
 &spi1 {
 	status = "okay";

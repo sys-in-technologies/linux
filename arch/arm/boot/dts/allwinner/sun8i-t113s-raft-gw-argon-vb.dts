@@ -113,7 +113,6 @@
 		   pwms = <&pwm 0 100000 PWM_POLARITY_INVERTED>;
 		   power-supply = <&reg_vcc5v>;
 		   /* gpio not connect to real backligth */
-		   enable-gpios = <&pio 4 0 GPIO_ACTIVE_HIGH>;
 		   brightness-levels = <0 30 40 50 60 70 80 90 100>;
 		   default-brightness-level = <8>;
 	};
@@ -272,7 +271,7 @@
 		interrupts = <3 22 IRQ_TYPE_EDGE_FALLING>;
 		irq-flags = <2>;	/*1:rising 2: falling*/
 		irq-gpios = <&pio 3 22 GPIO_ACTIVE_HIGH>;
-		reset-gpios = <&pio 3 19 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pio 3 19 GPIO_ACTIVE_LOW>;
 		touchscreen-swapped-x-y;
 	};
 };
@@ -317,7 +316,7 @@
 //		reg = <0>;
 //		vcc-supply = <&reg_2v8>;
 //		iovcc-supply = <&reg_1v8>;
-//		reset-gpios = <&pio 4 1 GPIO_ACTIVE_HIGH>;
+//		reset-gpios = <&pio 4 1 GPIO_ACTIVE_LOW>;
 //		backlight = <&backlight>;
 //		rotation = <270>;
 //	};
@@ -326,7 +325,7 @@
 		compatible = "huadichuangxian,hd50004c30", "ilitek,ili9881c";
 		reg = <0>;
 		power-supply = <&reg_2v8>;
-		reset-gpios = <&pio 4 1 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pio 4 1 GPIO_ACTIVE_LOW>;
 		backlight = <&backlight>;
 	};
 
@@ -334,7 +333,7 @@
 //		compatible = "mc101278007-40b", "ilitek,ili9881c";
 //		reg = <0>;
 //		power-supply = <&reg_2v8>;
-//		reset-gpios = <&pio 4 1 GPIO_ACTIVE_HIGH>;
+//		reset-gpios = <&pio 4 1 GPIO_ACTIVE_LOW>;
 //		backlight = <&backlight>;
 //	};
 };

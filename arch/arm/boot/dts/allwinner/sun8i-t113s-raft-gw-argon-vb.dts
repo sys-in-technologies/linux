@@ -284,9 +284,10 @@
 
 	24c04@50 {
 		compatible = "atmel,24c04";
+		label = "eeprom";
 		reg = <0x50>;
 		pagesize = <16>;
-		size = <512>;
+		size = <256>;
 	};
 
 	rx8025@32 {

@@ -1246,6 +1246,13 @@ static int sd_read_ext_regs(struct mmc_card *card)
 	if (mmc_host_is_spi(card->host))
 		return 0;
 
+	/* FIXME: The SCR register of the non-standard SD card indicates
+	 * support for CMD48, but it actually does not support it. This
+	 * part will be forcibly skipped and deleted after using a
+	 * standard SD card chip.
+	 */
+	return 0;
+
 	if (!(card->scr.cmds & SD_SCR_CMD48_SUPPORT))
 		return 0;
 

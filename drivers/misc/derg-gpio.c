@@ -26,29 +26,28 @@
 #include <linux/clk.h>
 #include <linux/dma-mapping.h>
 
-
 enum Num {
-	derg_mesh_en = 0,
-	derg_wifi_en,
-	derg_ble_en,
-	derg_ble_conn,
+	// derg_mesh_en = 0,
+	// derg_wifi_en,
+	derg_ble_en = 0,
+	derg_ble_conn ,
 	derg_mesh_burn
 };
 
-#define DERG_GPIO_NUM 5
+#define DERG_GPIO_NUM 3
 #define GPIO_MAGIC 'g'
 #define DERG_BLE_EN	_IOW(GPIO_MAGIC, 0x02, unsigned long)
-#define DERG_MESH_EN	_IOW(GPIO_MAGIC, 0x03, unsigned long)
-#define DERG_WIFI_EN	_IOW(GPIO_MAGIC, 0x04, unsigned long)
+// #define DERG_MESH_EN	_IOW(GPIO_MAGIC, 0x03, unsigned long)
+// #define DERG_WIFI_EN	_IOW(GPIO_MAGIC, 0x04, unsigned long)
 #define DERG_BLE_CONN   _IOR(GPIO_MAGIC, 0x05, unsigned long)
 #define DERG_MESH_BURN	_IOW(GPIO_MAGIC, 0x06, unsigned long)
 
 static struct work_struct gpio_work;
 static struct semaphore gpio_sem;
 
-static char *gpio_name[5] = {
-	"derg-mesh-en-gpios", "derg-wifi-en-gpios", "derg-ble-en-gpios",
-	"derg-ble-conn-gpios", "derg-mesh-burn-gpios"
+static char *gpio_name[3] = {
+	//"derg-mesh-en-gpios", "derg-wifi-en-gpios",
+	"derg-ble-en-gpios", "derg-ble-conn-gpios", "derg-mesh-burn-gpios"
 };
 
 static int gpio_num[DERG_GPIO_NUM];
@@ -82,7 +81,7 @@ static long gpio_drv_ioctl(struct file *file, unsigned int cmd,
 
 		gpio_set_value(gpio_num[derg_ble_en], arg);
 		break;
-
+	/*
 	case DERG_MESH_EN:
 		if (gpio_num[derg_mesh_en] == -1) {
 			pr_err("%s not defined in dts\n", gpio_name[derg_mesh_en]);
@@ -110,7 +109,7 @@ static long gpio_drv_ioctl(struct file *file, unsigned int cmd,
 
 		gpio_set_value(gpio_num[derg_wifi_en], !arg);
 		break;
-
+	*/
 	case DERG_BLE_CONN:
 	{
 		int err, val;
@@ -155,11 +154,16 @@ error:
 static void gpio_work_func(struct work_struct *work)
 {
 	/* derg gpio init */
-
+	/*
 	if (gpio_num[derg_wifi_en] != -1) {
 		gpio_direction_output(gpio_num[derg_wifi_en], 0);
 		msleep(500);
 	}
+
+	if (gpio_num[derg_mesh_en] != -1) {
+		gpio_direction_output(gpio_num[derg_mesh_en], 1);
+	}
+	*/
 
 	if (gpio_num[derg_ble_en] != -1) {
 		gpio_direction_output(gpio_num[derg_ble_en], 1);
@@ -168,10 +172,6 @@ static void gpio_work_func(struct work_struct *work)
 		msleep(300);
 		gpio_set_value(gpio_num[derg_ble_en], 1);
 		msleep(500);
-	}
-
-	if (gpio_num[derg_mesh_en] != -1) {
-		gpio_direction_output(gpio_num[derg_mesh_en], 1);
 	}
 
 	if (gpio_num[derg_mesh_burn] != -1) {

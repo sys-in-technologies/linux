@@ -1,0 +1,291 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+// Copyright (C) 2022 Arm Ltd.
+
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/pwm/pwm.h>
+
+/dts-v1/;
+
+#include "sun8i-t113s.dtsi"
+
+/ {
+	model = "Raft Gataway ARGON VB";
+	compatible = "allwinner,sun8i-t113s";
+
+	aliases {
+                serial0 = &uart0;
+	};
+
+        chosen {
+               stdout-path = "serial0:115200n8";
+        };
+
+	/* board wide 5V supply directly from DC input */
+	reg_vcc5v: regulator-5v {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-5v";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+	};
+
+	/* AMS1117-3.3 regulator on the board */
+	reg_3v3: regulator-3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&reg_vcc5v>;
+	};
+
+	/* EA3036C DC/DC regulator on the board, also supplying VDD-SYS */
+	reg_vcc_core: regulator-core {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-core";
+		regulator-min-microvolt = <900000>;
+		regulator-max-microvolt = <900000>;
+		vin-supply = <&reg_vcc5v>;
+	};
+
+	watchdog {
+		compatible = "allwinner,sun20i-d1-wdt";
+		reg = <0x020500A0 0x20>;
+	};
+
+        derg-gpiokey {
+                compatible = "gpio-keys";
+
+                fun1key {
+                        device_type = "fun1key";
+                        label = "fun1key";
+                        gpios = <&pio 3 3 GPIO_ACTIVE_LOW>;	//PD3
+                        linux,input-type = <1>;
+                        linux,code = <139>;
+                        debounce-interval = <5>;
+                        gpio-key,wakeup;
+                };
+
+                blekey {
+                        device_type = "blekey";
+                        label = "blekey";
+                        gpios = <&pio 6 7 GPIO_ACTIVE_LOW>;	//PG7
+                        linux,input-type = <1>;
+                        linux,code = <140>;
+                        debounce-interval = <5>;
+                        gpio-key,wakeup;
+                };
+        };
+
+        derg-gpio-para {
+                compatible = "allwinner,sunxi-t113-derg";
+                derg-ble-conn-gpios = <&pio 3 16 GPIO_ACTIVE_HIGH>;	//PD16
+                derg-ble-en-gpios = <&pio 3 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;      //PD15
+		derg-mesh-burn-gpios = <&pio 1 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;	//PB3
+        };
+
+        derg-leds {
+                compatible = "gpio-leds";
+                led1 {
+                        label = "led1";
+                        gpios = <&pio 3 17 GPIO_ACTIVE_LOW>;	//PD17
+                        default-state = "off";
+                };
+                led2 {
+                        label = "led2";
+                        gpios = <&pio 3 18 GPIO_ACTIVE_LOW>;	//PD18
+                        default-state = "off";
+                };
+                led3 {
+                        label = "led3";
+                        gpios = <&pio 3 19 GPIO_ACTIVE_LOW>;	//PD19
+                        default-state = "off";
+                };
+                led4 {
+                        label = "led4";
+                        gpios = <&pio 3 20 GPIO_ACTIVE_LOW>;	//PD20
+                        default-state = "off";
+                };
+                led5 {
+                        label = "led5";
+                        gpios = <&pio 3 21 GPIO_ACTIVE_LOW>;	//PD21
+                        default-state = "off";
+                };
+                led6 {
+                        label = "led6";
+                        gpios = <&pio 3 0 GPIO_ACTIVE_LOW>;    //PD0
+                        default-state = "off";
+                };
+        };
+};
+
+&pio {
+	vcc-pc-supply = <&reg_3v3>;
+	vcc-pd-supply = <&reg_3v3>;
+	vcc-pe-supply = <&reg_3v3>;
+	vcc-pf-supply = <&reg_3v3>;
+	vcc-pg-supply = <&reg_3v3>;
+
+        rmii_pg_pins: rmii-pg-pins {
+	        pins = "PG0", "PG1", "PG2", "PG3", "PG4",
+	        "PG5", "PG8", "PG11", "PG12", "PG13", "PG14", "PG15";
+	        function = "emac";
+        };
+
+        ble_pins: ble_pins {
+                pins = "PD1", "PD2";
+                function = "uart2";
+        };
+
+        u232_2_pins: u232_2_pins {
+                pins = "PB4", "PB5";
+                function = "uart5";
+        };
+
+        u232_1_pins: u232_1_pins {
+                pins = "PB6", "PB7";
+                function = "uart3";
+        };
+
+        u485_1_pins: u485_1_pins {
+                pins = "PE10", "PE11";
+                function = "uart1";
+        };
+
+        u485_2_pins: u485_2_pins {
+                pins = "PE4", "PE5";
+                function = "uart4";
+        };
+
+	i2c3_pins: i2c3-pins {
+		pins = "PE6", "PE7";
+		function = "i2c3";
+	};
+};
+
+&cpu0 {
+	cpu-supply = <&reg_vcc_core>;
+};
+
+&cpu1 {
+	cpu-supply = <&reg_vcc_core>;
+};
+
+&dcxo {
+	clock-frequency = <24000000>;
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pe_pins>;
+	status = "okay";
+};
+
+&uart1 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&u485_1_pins>;
+        status = "okay";
+};
+
+&uart2 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&ble_pins>;
+        status = "disable";
+};
+
+&uart3 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&u232_1_pins>;
+        status = "okay";
+};
+
+&uart4 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&u485_2_pins>;
+        status = "okay";
+};
+
+&uart5 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&u232_2_pins>;
+        status = "okay";
+};
+
+&can0 {
+       pinctrl-names = "default";
+       pinctrl-0 = <&can0_pins>;
+       status = "okay";
+};
+
+&mmc0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mmc0_pins>;
+	vmmc-supply = <&reg_3v3>;
+	disable-wp;
+	bus-width = <4>;
+	status = "okay";
+};
+
+&emac {
+	compatible = "allwinner,sun50i-h6-emac";
+	pinctrl-names = "default";
+	pinctrl-0 = <&rmii_pg_pins>;
+	clocks = <&ccu CLK_BUS_EMAC>, <&ccu CLK_EMAC_25M>;
+	clock-names = "stmmaceth", "pclk";
+	phy-mode = "rmii";
+	phy-handle = <&phy0>;
+	phy-supply = <&reg_3v3>;
+	status = "okay";
+};
+
+&mdio {
+        phy0: ethernet-phy@0 {
+                reg = <0>;
+                motorcomm,clk-out-frequency-hz = <0>;
+                motorcomm,auto-sleep-disabled;
+                motorcomm,keep-pll-enabled;
+        };
+};
+
+&usbphy {
+	usb1_vbus-supply = <&reg_vcc5v>;
+	status = "okay";
+};
+
+&ehci1 {
+        status = "okay";
+};
+
+&ohci1 {
+        status = "okay";
+};
+
+&usb_otg {
+        status = "disable";
+};
+
+&i2c3 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c3_pins>;
+
+	24c04@50 {
+		compatible = "atmel,24c04";
+		label = "eeprom";
+		reg = <0x50>;
+		pagesize = <16>;
+		size = <256>;
+	};
+
+	//rx8025@32 {
+	//	compatible = "epson,rx8025";
+	//	reg = <0x32>;
+	//};
+
+	rx8010@32{
+		compatible = "epson,rx8010";
+		reg = <0x32>;
+	};
+};
+

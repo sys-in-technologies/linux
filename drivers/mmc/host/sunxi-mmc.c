@@ -765,6 +765,13 @@ static int sunxi_mmc_clk_set_rate(struct sunxi_mmc_host *host,
 	u32 rval, clock = ios->clock, div = 1;
 	int ret;
 
+#ifdef CONFIG_SUN20I_D1_CCU
+	/* The t113 MMC clock has an extra /2 post-divider, clock should
+	 * multiply by 2
+	 */
+	clock = clock * 2;
+#endif
+
 	ret = sunxi_mmc_oclk_onoff(host, 0);
 	if (ret)
 		return ret;
@@ -806,6 +813,7 @@ static int sunxi_mmc_clk_set_rate(struct sunxi_mmc_host *host,
 			clock, rate);
 		return rate;
 	}
+
 	dev_dbg(mmc_dev(mmc), "setting clk to %d, rounded %ld\n",
 		clock, rate);
 
@@ -816,6 +824,13 @@ static int sunxi_mmc_clk_set_rate(struct sunxi_mmc_host *host,
 			rate, ret);
 		return ret;
 	}
+
+#ifdef CONFIG_SUN20I_D1_CCU
+	/* The t113 MMC clock has an extra /2 post-divider, clock should
+	 * multiply by 2. After set rate, restore old rate.
+	 */
+	rate = rate / 2;
+#endif
 
 	/* set internal divider */
 	rval = mmc_readl(host, REG_CLKCR);

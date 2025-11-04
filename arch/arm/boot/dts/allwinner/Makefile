@@ -260,6 +260,7 @@ dtb-$(CONFIG_MACH_SUN8I) += \
 	sun8i-t113s-raft-gw-argon-vb.dtb \
 	sun8i-t113s-raft-gw-argon-blelight.dtb \
 	sun8i-t113s-ec-derg-t113f0.dtb \
+	sun8i-t113s-ec-derg-t113b0.dtb \
 	sun8i-t113s-raft-gw-argon-eca0.dtb \
 	sun8i-t3-cqa3t-bv3.dtb \
 	sun8i-v3-sl631-imx179.dtb \

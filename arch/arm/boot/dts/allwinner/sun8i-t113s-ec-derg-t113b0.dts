@@ -11,7 +11,7 @@
 #include "sun8i-t113s.dtsi"
 
 / {
-	model = "Raft Gataway ARGON ECA0";
+	model = "EC DERG T113 B0";
 	compatible = "allwinner,sun8i-t113s";
 
 	aliases {
@@ -78,6 +78,13 @@
                 };
         };
 
+        derg-gpio-para {
+                compatible = "allwinner,sunxi-t113-derg";
+                derg-ble-conn-gpios = <&pio 3 16 GPIO_ACTIVE_HIGH>;	//PD16
+                derg-ble-en-gpios = <&pio 3 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;      //PD15
+		derg-mesh-burn-gpios = <&pio 1 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;	//PB3
+        };
+
         derg-leds {
                 compatible = "gpio-leds";
                 led1 {
@@ -105,11 +112,6 @@
                         gpios = <&pio 3 21 GPIO_ACTIVE_LOW>;	//PD21
                         default-state = "off";
                 };
-                led6 {
-                        label = "led6";
-                        gpios = <&pio 3 0 GPIO_ACTIVE_LOW>;    //PD0
-                        default-state = "off";
-                };
         };
 };
 
@@ -126,17 +128,17 @@
 	        function = "emac";
         };
 
-        nouse_pins: nouse_pins {
+        ble_pins: ble_pins {
                 pins = "PD1", "PD2";
                 function = "uart2";
         };
 
-        u232_1_pins: u232_1_pins {
+        mesh_data_pins: mesh_data_pins {
                 pins = "PB4", "PB5";
                 function = "uart5";
         };
 
-        u232_2_pins: u232_2_pins {
+        mesh_debug_pins: mesh_debug_pins {
                 pins = "PB6", "PB7";
                 function = "uart3";
         };
@@ -183,13 +185,13 @@
 
 &uart2 {
         pinctrl-names = "default";
-        pinctrl-0 = <&nouse_pins>;
+        pinctrl-0 = <&ble_pins>;
         status = "okay";
 };
 
 &uart3 {
         pinctrl-names = "default";
-        pinctrl-0 = <&u232_2_pins>;
+        pinctrl-0 = <&mesh_debug_pins>;
         status = "okay";
 };
 
@@ -201,14 +203,8 @@
 
 &uart5 {
         pinctrl-names = "default";
-        pinctrl-0 = <&u232_1_pins>;
+        pinctrl-0 = <&mesh_data_pins>;
         status = "okay";
-};
-
-&can0 {
-       pinctrl-names = "default";
-       pinctrl-0 = <&can0_pins>;
-       status = "okay";
 };
 
 &mmc0 {

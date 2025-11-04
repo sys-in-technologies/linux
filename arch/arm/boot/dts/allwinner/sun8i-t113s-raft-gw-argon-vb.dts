@@ -273,7 +273,7 @@
 		irq-flags = <2>;	/*1:rising 2: falling*/
 		irq-gpios = <&pio 3 22 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&pio 3 19 GPIO_ACTIVE_LOW>;
-		touchscreen-swapped-x-y;
+		/*touchscreen-swapped-x-y;*/
 	};
 };
 
@@ -325,6 +325,7 @@
 	};
 #endif
 
+#if 0
 	panel@0 {
 		compatible = "huadichuangxian,hd50004c30", "ilitek,ili9881c";
 		reg = <0>;
@@ -332,6 +333,7 @@
 		reset-gpios = <&pio 4 1 GPIO_ACTIVE_LOW>;
 		backlight = <&backlight>;
 	};
+#endif
 
 #if 0
 	panel@0 {
@@ -342,6 +344,15 @@
 		backlight = <&backlight>;
 	};
 #endif
+
+	panel@0 {
+		compatible = "elitek,ek79007";
+		reg = <0>;
+		power-supply = <&reg_2v8>;
+		reset-gpios = <&pio 4 1 GPIO_ACTIVE_LOW>;
+		backlight = <&backlight>;
+	};
+
 	port {
 		dsi_in_tcon_lcd0: endpoint {
 			remote-endpoint = <&tcon_lcd0_out_dsi>;

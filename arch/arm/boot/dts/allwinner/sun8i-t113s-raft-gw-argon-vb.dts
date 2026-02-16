@@ -325,7 +325,7 @@
 	};
 #endif
 
-#if 0
+#if 1
 	panel@0 {
 		compatible = "huadichuangxian,hd50004c30", "ilitek,ili9881c";
 		reg = <0>;
@@ -345,6 +345,7 @@
 	};
 #endif
 
+#if 0
 	panel@0 {
 		compatible = "elitek,ek79007";
 		reg = <0>;
@@ -352,6 +353,7 @@
 		reset-gpios = <&pio 4 1 GPIO_ACTIVE_LOW>;
 		backlight = <&backlight>;
 	};
+#endif
 
 	port {
 		dsi_in_tcon_lcd0: endpoint {

@@ -308,7 +308,7 @@ static int sun6i_dsi_inst_wait_for_completion(struct sun6i_dsi *dsi)
 	return regmap_read_poll_timeout(dsi->regs, SUN6I_DSI_BASIC_CTL0_REG,
 					val,
 					!(val & SUN6I_DSI_BASIC_CTL0_INST_ST),
-					100, 5000);
+					100, 500000);
 }
 
 static void sun6i_dsi_inst_setup(struct sun6i_dsi *dsi,

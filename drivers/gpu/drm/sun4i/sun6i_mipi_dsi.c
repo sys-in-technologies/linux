@@ -833,7 +833,8 @@ static void sun6i_dsi_encoder_disable(struct drm_encoder *encoder)
 
 	if (!IS_ERR(dsi->mod_clk)) {
 		clk_disable_unprepare(dsi->mod_clk);
-		clk_rate_exclusive_put(dsi->mod_clk);
+		if (dsi->variant->set_mod_clk)
+			clk_rate_exclusive_put(dsi->mod_clk);
 	}
 	reset_control_assert(dsi->reset);
 	regulator_disable(dsi->regulator);

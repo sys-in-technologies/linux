@@ -8,6 +8,7 @@
 
 #include <linux/bitops.h>
 #include <linux/clk.h>
+#include <linux/io.h>
 #include <linux/module.h>
 #include <linux/of_address.h>
 #include <linux/platform_device.h>
@@ -332,6 +333,8 @@ static void sun50i_a100_mipi_dphy_tx_power_on(struct sun6i_dphy *dphy)
 static int sun6i_dphy_tx_power_on(struct sun6i_dphy *dphy)
 {
 	u8 lanes_mask = GENMASK(dphy->config.lanes - 1, 0);
+	void __iomem *sid;
+	u32 ic_ver;
 
 	regmap_write(dphy->regs, SUN6I_DPHY_TX_CTL_REG,
 		     SUN6I_DPHY_TX_CTL_HS_TX_CLK_CONT);
@@ -378,6 +381,19 @@ static int sun6i_dphy_tx_power_on(struct sun6i_dphy *dphy)
 	regmap_update_bits(dphy->regs, SUN6I_DPHY_ANA1_REG,
 			   SUN6I_DPHY_ANA1_REG_VTTMODE,
 			   SUN6I_DPHY_ANA1_REG_VTTMODE);
+
+	/* T113-S/D1 quirk: set bit 5 of ANA1 if IC version > 0 */
+	sid = ioremap(0x03000024, 4);
+	if (sid) {
+		ic_ver = readl(sid) & 0x7;
+		iounmap(sid);
+		if (ic_ver > 0) {
+			regmap_update_bits(dphy->regs, SUN6I_DPHY_ANA1_REG,
+					   BIT(5), BIT(5));
+			dev_info(&dphy->phy->dev,
+				 "IC version %u: set ANA1 bit 5\n", ic_ver);
+		}
+	}
 
 	regmap_update_bits(dphy->regs, SUN6I_DPHY_ANA2_REG,
 			   SUN6I_DPHY_ANA2_EN_P2S_CPU_MASK,

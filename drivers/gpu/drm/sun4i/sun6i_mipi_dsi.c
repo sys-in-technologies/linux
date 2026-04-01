@@ -726,6 +726,209 @@ static void sun6i_dsi_encoder_enable(struct drm_encoder *encoder)
 
 	DRM_DEBUG_DRIVER("Enabling DSI output\n");
 
+	/* Debug: full register dump before Linux touches anything */
+	{
+		void __iomem *ccu = ioremap(0x02001000, 0x1000);
+
+		if (ccu) {
+			u32 saved_b4c, saved_b7c, saved_abc, saved_60c;
+
+			/* Save and enable all bus gates */
+			saved_b4c = readl(ccu + 0xb4c);
+			saved_b7c = readl(ccu + 0xb7c);
+			saved_abc = readl(ccu + 0xabc);
+			saved_60c = readl(ccu + 0x60c);
+			writel(saved_b4c | BIT(16) | BIT(0), ccu + 0xb4c);
+			writel(saved_b7c | BIT(16) | BIT(0), ccu + 0xb7c);
+			writel(saved_abc | BIT(16) | BIT(0), ccu + 0xabc);
+			writel(saved_60c | BIT(16) | BIT(0), ccu + 0x60c);
+			udelay(10);
+
+			dev_info(dsi->dev, "=== PRE-INIT FULL REGISTER DUMP ===\n");
+			dev_info(dsi->dev, "CCU: 0xb4c=%08x 0xb7c=%08x 0xabc=%08x 0x60c=%08x\n",
+				 saved_b4c, saved_b7c, saved_abc, saved_60c);
+			/* CCU display clocks */
+			dev_info(dsi->dev, "CCU: PLL_VIDEO0(040)=%08x MIPI_DSI(b24)=%08x TCON_LCD0(b60)=%08x\n",
+				 readl(ccu + 0x040),
+				 readl(ccu + 0xb24),
+				 readl(ccu + 0xb60));
+			dev_info(dsi->dev, "CCU: DE(600)=%08x DE_BUS(60c)=%08x\n",
+				 readl(ccu + 0x600),
+				 readl(ccu + 0x60c));
+
+			{
+				void __iomem *base;
+				int off;
+
+				/* DSI controller: 0x05450000, 0x000-0x200 */
+				base = ioremap(0x05450000, 0x200);
+				if (base) {
+					for (off = 0; off < 0x200; off += 16)
+						dev_info(dsi->dev,
+							 "DSI[%03x] %08x %08x %08x %08x\n",
+							 off,
+							 readl(base + off),
+							 readl(base + off + 4),
+							 readl(base + off + 8),
+							 readl(base + off + 12));
+					iounmap(base);
+				}
+
+				/* D-PHY: 0x05451000, 0x000-0x120 */
+				base = ioremap(0x05451000, 0x120);
+				if (base) {
+					for (off = 0; off < 0x120; off += 16)
+						dev_info(dsi->dev,
+							 "DPHY[%03x] %08x %08x %08x %08x\n",
+							 off,
+							 readl(base + off),
+							 readl(base + off + 4),
+							 readl(base + off + 8),
+							 readl(base + off + 12));
+					iounmap(base);
+				}
+
+				/* TCON LCD0: 0x05461000, 0x000-0x200 */
+				base = ioremap(0x05461000, 0x200);
+				if (base) {
+					for (off = 0; off < 0x200; off += 16)
+						dev_info(dsi->dev,
+							 "TCON[%03x] %08x %08x %08x %08x\n",
+							 off,
+							 readl(base + off),
+							 readl(base + off + 4),
+							 readl(base + off + 8),
+							 readl(base + off + 12));
+					iounmap(base);
+				}
+
+				/* TCON TOP: 0x05460000, 0x000-0x030 */
+				base = ioremap(0x05460000, 0x030);
+				if (base) {
+					for (off = 0; off < 0x030; off += 16)
+						dev_info(dsi->dev,
+							 "TCON_TOP[%03x] %08x %08x %08x %08x\n",
+							 off,
+							 readl(base + off),
+							 readl(base + off + 4),
+							 readl(base + off + 8),
+							 readl(base + off + 12));
+					iounmap(base);
+				}
+
+				/* DE2 Global: 0x05100000, 0x000-0x010 */
+				base = ioremap(0x05100000, 0x010);
+				if (base) {
+					dev_info(dsi->dev,
+						 "DE2_GLB[000] %08x %08x %08x %08x\n",
+						 readl(base),
+						 readl(base + 4),
+						 readl(base + 8),
+						 readl(base + 12));
+					iounmap(base);
+				}
+
+				/* DE2 Blender: 0x05101000, 0x000-0x100 */
+				base = ioremap(0x05101000, 0x100);
+				if (base) {
+					for (off = 0; off < 0x100; off += 16)
+						dev_info(dsi->dev,
+							 "DE2_BLD[%03x] %08x %08x %08x %08x\n",
+							 off,
+							 readl(base + off),
+							 readl(base + off + 4),
+							 readl(base + off + 8),
+							 readl(base + off + 12));
+					iounmap(base);
+				}
+
+				/* DE2 UI Channel 1: 0x05103000, 0x000-0x100 */
+				base = ioremap(0x05103000, 0x100);
+				if (base) {
+					for (off = 0; off < 0x100; off += 16)
+						dev_info(dsi->dev,
+							 "DE2_UI1[%03x] %08x %08x %08x %08x\n",
+							 off,
+							 readl(base + off),
+							 readl(base + off + 4),
+							 readl(base + off + 8),
+							 readl(base + off + 12));
+					iounmap(base);
+				}
+
+				/* DE2 VI Channel 0: 0x05102000, 0x000-0x100 */
+				base = ioremap(0x05102000, 0x100);
+				if (base) {
+					for (off = 0; off < 0x100; off += 16)
+						dev_info(dsi->dev,
+							 "DE2_VI0[%03x] %08x %08x %08x %08x\n",
+							 off,
+							 readl(base + off),
+							 readl(base + off + 4),
+							 readl(base + off + 8),
+							 readl(base + off + 12));
+					iounmap(base);
+				}
+
+				/* DE2 VEP enable regs: FCE/BWS/LTI/PEAK/ASE */
+				base = ioremap(0x051A0000, 0xA000);
+				if (base) {
+					dev_info(dsi->dev,
+						 "VEP: FCE=%08x BWS=%08x LTI=%08x PEAK=%08x ASE=%08x\n",
+						 readl(base + 0x0000),
+						 readl(base + 0x2000),
+						 readl(base + 0x4000),
+						 readl(base + 0x6000),
+						 readl(base + 0x8000));
+					iounmap(base);
+				}
+
+				/* DE2 FCC enable + CCSC00: 0x051AA000 */
+				base = ioremap(0x051AA000, 0x100);
+				if (base) {
+					dev_info(dsi->dev,
+						 "FCC_EN=%08x CCSC00[050]=%08x %08x %08x %08x\n",
+						 readl(base + 0x000),
+						 readl(base + 0x050),
+						 readl(base + 0x054),
+						 readl(base + 0x058),
+						 readl(base + 0x05c));
+					iounmap(base);
+				}
+
+				/* DE2 DCSC enable: 0x051B0000 */
+				base = ioremap(0x051B0000, 0x4);
+				if (base) {
+					dev_info(dsi->dev, "DCSC_EN=%08x\n",
+						 readl(base));
+					iounmap(base);
+				}
+
+				/* DE2 CCSC01 (D1 layout): 0x051FA000 */
+				base = ioremap(0x051FA000, 0x100);
+				if (base) {
+					for (off = 0; off < 0x100; off += 16)
+						dev_info(dsi->dev,
+							 "CCSC01[%03x] %08x %08x %08x %08x\n",
+							 off,
+							 readl(base + off),
+							 readl(base + off + 4),
+							 readl(base + off + 8),
+							 readl(base + off + 12));
+					iounmap(base);
+				}
+			}
+
+			/* Restore original gate values */
+			writel(saved_b4c, ccu + 0xb4c);
+			writel(saved_b7c, ccu + 0xb7c);
+			writel(saved_abc, ccu + 0xabc);
+			writel(saved_60c, ccu + 0x60c);
+
+			iounmap(ccu);
+		}
+	}
+
 	err = regulator_enable(dsi->regulator);
 	if (err)
 		dev_warn(dsi->dev, "failed to enable VCC-DSI supply: %d\n", err);

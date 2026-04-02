@@ -336,28 +336,57 @@ static int sun6i_dphy_tx_power_on(struct sun6i_dphy *dphy)
 	void __iomem *sid;
 	u32 ic_ver;
 
-	regmap_write(dphy->regs, SUN6I_DPHY_TX_CTL_REG,
-		     SUN6I_DPHY_TX_CTL_HS_TX_CLK_CONT);
+	/*
+	 * Compute D-PHY TX timing from the MIPI D-PHY spec rather than
+	 * using hardcoded values. The mod_clk runs at 150 MHz (6667 ps
+	 * per cycle). Values in dphy->config are in picoseconds, filled
+	 * by phy_mipi_dphy_get_default_config().
+	 */
+#define DPHY_MOD_CLK_PS 6667ULL
+	{
+		u64 ui_ps = DIV_ROUND_CLOSEST_ULL(1000000000000ULL,
+						   dphy->config.hs_clk_rate);
+		u64 hs_trail_ps = max_t(u64, 8 * ui_ps, 60000 + 4 * ui_ps);
+		u64 clk_pre_ps = max_t(u64, dphy->config.clk_pre, 8 * ui_ps);
+		unsigned int hs_prepare = DIV_ROUND_UP_ULL(dphy->config.hs_prepare,
+							   DPHY_MOD_CLK_PS);
+		unsigned int hs_trail = DIV_ROUND_UP_ULL(hs_trail_ps,
+							 DPHY_MOD_CLK_PS);
+		unsigned int clk_prepare = DIV_ROUND_UP_ULL(dphy->config.clk_prepare,
+							    DPHY_MOD_CLK_PS);
+		unsigned int clk_zero = DIV_ROUND_UP_ULL(dphy->config.clk_zero,
+							 DPHY_MOD_CLK_PS);
+		unsigned int clk_pre = DIV_ROUND_UP_ULL(clk_pre_ps,
+							DPHY_MOD_CLK_PS);
+		unsigned int clk_post = DIV_ROUND_UP_ULL(dphy->config.clk_post,
+							 DPHY_MOD_CLK_PS);
+		unsigned int clk_trail = DIV_ROUND_UP_ULL(dphy->config.clk_trail,
+							  DPHY_MOD_CLK_PS);
 
-	regmap_write(dphy->regs, SUN6I_DPHY_TX_TIME0_REG,
-		     SUN6I_DPHY_TX_TIME0_LP_CLK_DIV(14) |
-		     SUN6I_DPHY_TX_TIME0_HS_PREPARE(6) |
-		     SUN6I_DPHY_TX_TIME0_HS_TRAIL(10));
+		regmap_write(dphy->regs, SUN6I_DPHY_TX_CTL_REG,
+			     SUN6I_DPHY_TX_CTL_HS_TX_CLK_CONT);
 
-	regmap_write(dphy->regs, SUN6I_DPHY_TX_TIME1_REG,
-		     SUN6I_DPHY_TX_TIME1_CLK_PREPARE(7) |
-		     SUN6I_DPHY_TX_TIME1_CLK_ZERO(50) |
-		     SUN6I_DPHY_TX_TIME1_CLK_PRE(3) |
-		     SUN6I_DPHY_TX_TIME1_CLK_POST(10));
+		regmap_write(dphy->regs, SUN6I_DPHY_TX_TIME0_REG,
+			     SUN6I_DPHY_TX_TIME0_LP_CLK_DIV(14) |
+			     SUN6I_DPHY_TX_TIME0_HS_PREPARE(hs_prepare) |
+			     SUN6I_DPHY_TX_TIME0_HS_TRAIL(hs_trail));
 
-	regmap_write(dphy->regs, SUN6I_DPHY_TX_TIME2_REG,
-		     SUN6I_DPHY_TX_TIME2_CLK_TRAIL(30));
+		regmap_write(dphy->regs, SUN6I_DPHY_TX_TIME1_REG,
+			     SUN6I_DPHY_TX_TIME1_CLK_PREPARE(clk_prepare) |
+			     SUN6I_DPHY_TX_TIME1_CLK_ZERO(clk_zero) |
+			     SUN6I_DPHY_TX_TIME1_CLK_PRE(clk_pre) |
+			     SUN6I_DPHY_TX_TIME1_CLK_POST(clk_post));
 
-	regmap_write(dphy->regs, SUN6I_DPHY_TX_TIME3_REG, 0);
+		regmap_write(dphy->regs, SUN6I_DPHY_TX_TIME2_REG,
+			     SUN6I_DPHY_TX_TIME2_CLK_TRAIL(clk_trail));
 
-	regmap_write(dphy->regs, SUN6I_DPHY_TX_TIME4_REG,
-		     SUN6I_DPHY_TX_TIME4_HS_TX_ANA0(3) |
-		     SUN6I_DPHY_TX_TIME4_HS_TX_ANA1(3));
+		regmap_write(dphy->regs, SUN6I_DPHY_TX_TIME3_REG, 0);
+
+		regmap_write(dphy->regs, SUN6I_DPHY_TX_TIME4_REG,
+			     SUN6I_DPHY_TX_TIME4_HS_TX_ANA0(3) |
+			     SUN6I_DPHY_TX_TIME4_HS_TX_ANA1(3));
+	}
+#undef DPHY_MOD_CLK_PS
 
 	dphy->variant->tx_power_on(dphy);
 

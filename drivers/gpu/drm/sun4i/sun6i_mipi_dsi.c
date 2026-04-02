@@ -1218,7 +1218,8 @@ static int sun6i_dsi_detach(struct mipi_dsi_host *host,
 	dsi->panel = NULL;
 	dsi->device = NULL;
 
-	drm_kms_helper_hotplug_event(dsi->drm);
+	if (dsi->drm)
+		drm_kms_helper_hotplug_event(dsi->drm);
 
 	return 0;
 }

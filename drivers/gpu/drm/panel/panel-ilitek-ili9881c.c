@@ -1971,14 +1971,24 @@ static int ili9881c_dsi_probe(struct mipi_dsi_device *dsi)
 	dsi->format = MIPI_DSI_FMT_RGB888;
 	dsi->lanes = 4;
 
-	return mipi_dsi_attach(dsi);
+	ret = mipi_dsi_attach(dsi);
+	if (ret) {
+		drm_panel_remove(&ctx->panel);
+		return ret;
+	}
+
+	return 0;
 }
 
 static void ili9881c_dsi_remove(struct mipi_dsi_device *dsi)
 {
 	struct ili9881c *ctx = mipi_dsi_get_drvdata(dsi);
 
-	mipi_dsi_detach(dsi);
+	drm_panel_disable(&ctx->panel);
+	drm_panel_unprepare(&ctx->panel);
+
+	if (dsi->attached)
+		mipi_dsi_detach(dsi);
 	drm_panel_remove(&ctx->panel);
 }
 

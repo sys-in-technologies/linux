@@ -4,6 +4,7 @@
 
 #include <linux/bitfield.h>
 #include <linux/component.h>
+#include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/io.h>
 #include <linux/module.h>
@@ -163,6 +164,11 @@ static int sun8i_tcon_top_bind(struct device *dev, struct device *master,
 	if (IS_ERR(regs))
 		return PTR_ERR(regs);
 
+	/* Force a full reset cycle to clear internal state that may
+	 * persist from a prior boot stage (e.g. U-Boot splash).
+	 */
+	reset_control_assert(tcon_top->rst);
+	usleep_range(100, 200);
 	ret = reset_control_deassert(tcon_top->rst);
 	if (ret) {
 		dev_err(dev, "Could not deassert ctrl reset control\n");

@@ -8,6 +8,7 @@
  */
 
 #include <linux/component.h>
+#include <linux/delay.h>
 #include <linux/dma-mapping.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -437,6 +438,11 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
 		return PTR_ERR(mixer->reset);
 	}
 
+	/* Force a full reset cycle to clear internal FIFO/pipeline state
+	 * that may persist from a prior boot stage (e.g. U-Boot splash).
+	 */
+	reset_control_assert(mixer->reset);
+	usleep_range(100, 200);
 	ret = reset_control_deassert(mixer->reset);
 	if (ret) {
 		dev_err(dev, "Couldn't deassert our reset line\n");

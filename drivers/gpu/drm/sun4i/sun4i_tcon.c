@@ -301,23 +301,6 @@ static void sun4i_tcon0_mode_set_dithering(struct sun4i_tcon *tcon,
 	if (!connector)
 		return;
 
-	/*
-	 * FIXME: Undocumented bits
-	 *
-	 * The whole dithering process and these parameters are not
-	 * explained in the vendor documents or BSP kernel code.
-	 */
-	regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_PR_REG, 0x11111111);
-	regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_PG_REG, 0x11111111);
-	regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_PB_REG, 0x11111111);
-	regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_LR_REG, 0x11111111);
-	regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_LG_REG, 0x11111111);
-	regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_LB_REG, 0x11111111);
-	regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL0_REG, 0x01010000);
-	regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL1_REG, 0x15151111);
-	regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL2_REG, 0x57575555);
-	regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL3_REG, 0x7f7f7777);
-
 	/* Do dithering if panel only supports 6 bits per color */
 	if (connector->display_info.bpc == 6)
 		val |= SUN4I_TCON0_FRM_CTL_EN;
@@ -339,7 +322,39 @@ static void sun4i_tcon0_mode_set_dithering(struct sun4i_tcon *tcon,
 		break;
 	}
 
-	/* Write dithering settings */
+	/*
+	 * Write FRM seeds and tables only when FRM is actually enabled.
+	 * Writing non-zero values while FRM is disabled can cause
+	 * intermittent blue channel 6-bit quantization on some SoCs
+	 * (observed on T113-S/D1).  U-Boot also skips these for 24-bit.
+	 * When FRM is disabled, explicitly zero all seed/table registers
+	 * to clear any residual state from a previous mode.
+	 */
+	if (val & SUN4I_TCON0_FRM_CTL_EN) {
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_PR_REG, 0x11111111);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_PG_REG, 0x11111111);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_PB_REG, 0x11111111);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_LR_REG, 0x11111111);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_LG_REG, 0x11111111);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_LB_REG, 0x11111111);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL0_REG, 0x01010000);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL1_REG, 0x15151111);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL2_REG, 0x57575555);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL3_REG, 0x7f7f7777);
+	} else {
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_PR_REG, 0);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_PG_REG, 0);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_PB_REG, 0);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_LR_REG, 0);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_LG_REG, 0);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_SEED_LB_REG, 0);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL0_REG, 0);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL1_REG, 0);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL2_REG, 0);
+		regmap_write(tcon->regs, SUN4I_TCON0_FRM_TBL3_REG, 0);
+	}
+
+	/* Write dithering control — must come after seed/table setup */
 	regmap_write(tcon->regs, SUN4I_TCON_FRM_CTL_REG, val);
 }
 
@@ -352,8 +367,10 @@ static void sun4i_tcon0_mode_set_cpu(struct sun4i_tcon *tcon,
 	struct mipi_dsi_device *device = dsi->device;
 	u8 bpp = mipi_dsi_pixel_format_to_bpp(device->format);
 	u8 lanes = device->lanes;
+	u8 clk_delay;
 	u32 block_space, start_delay;
 	u32 tcon_div;
+	unsigned int bp;
 
 	/*
 	 * dclk is required to run at 1/4 the DSI per-lane bit rate.
@@ -371,16 +388,60 @@ static void sun4i_tcon0_mode_set_cpu(struct sun4i_tcon *tcon,
 	/* Set dithering if needed */
 	sun4i_tcon0_mode_set_dithering(tcon, sun4i_tcon_get_connector(encoder));
 
+	/*
+	 * Set clock delay and interface mode.  U-Boot programs CLK_DELAY
+	 * for DSI mode; match that to avoid configuration divergence
+	 * during U-Boot → Linux handover.
+	 */
+	clk_delay = sun4i_tcon_get_clk_delay(mode, 0);
 	regmap_update_bits(tcon->regs, SUN4I_TCON0_CTL_REG,
+			   SUN4I_TCON0_CTL_CLK_DELAY_MASK |
 			   SUN4I_TCON0_CTL_IF_MASK,
+			   SUN4I_TCON0_CTL_CLK_DELAY(clk_delay) |
 			   SUN4I_TCON0_CTL_IF_8080);
+
+	/*
+	 * Set DCLK enable bits 30:28 to match U-Boot.  U-Boot uses
+	 * (0xF << 28) while mainline only uses BIT(31).  The extra
+	 * bits are undocumented but consistently set by the BSP.
+	 */
+	regmap_update_bits(tcon->regs, SUN4I_TCON0_DCLK_REG,
+			   GENMASK(30, 28), GENMASK(30, 28));
 
 	regmap_write(tcon->regs, SUN4I_TCON_ECC_FIFO_REG,
 		     SUN4I_TCON_ECC_FIFO_EN);
 
+	/*
+	 * Program BASIC timing registers.  Although DSI CPU/trigger
+	 * mode uses the TRI registers for actual transfer timing,
+	 * U-Boot programs these and leaving them at zero may affect
+	 * internal TCON state machines.
+	 */
+	bp = mode->crtc_htotal - mode->crtc_hsync_start;
+	regmap_write(tcon->regs, SUN4I_TCON0_BASIC1_REG,
+		     SUN4I_TCON0_BASIC1_H_TOTAL(mode->crtc_htotal) |
+		     SUN4I_TCON0_BASIC1_H_BACKPORCH(bp));
+
+	bp = mode->crtc_vtotal - mode->crtc_vsync_start;
+	regmap_write(tcon->regs, SUN4I_TCON0_BASIC2_REG,
+		     SUN4I_TCON0_BASIC2_V_TOTAL(mode->crtc_vtotal * 2) |
+		     SUN4I_TCON0_BASIC2_V_BACKPORCH(bp));
+
+	regmap_write(tcon->regs, SUN4I_TCON0_BASIC3_REG,
+		     SUN4I_TCON0_BASIC3_H_SYNC(mode->crtc_hsync_end -
+						mode->crtc_hsync_start) |
+		     SUN4I_TCON0_BASIC3_V_SYNC(mode->crtc_vsync_end -
+						mode->crtc_vsync_start));
+
+	/* Disable CCIR CSC (bit 19) to prevent unwanted color conversion */
+	regmap_write(tcon->regs, SUN4I_TCON0_HV_IF_REG, BIT(19));
+
+	/*
+	 * CPU interface: DSI mode + trigger enable + trigger FIFO enable.
+	 * U-Boot does NOT set TRI_FIFO_FLUSH — match that configuration.
+	 */
 	regmap_write(tcon->regs, SUN4I_TCON0_CPU_IF_REG,
 		     SUN4I_TCON0_CPU_IF_MODE_DSI |
-		     SUN4I_TCON0_CPU_IF_TRI_FIFO_FLUSH |
 		     SUN4I_TCON0_CPU_IF_TRI_FIFO_EN |
 		     SUN4I_TCON0_CPU_IF_TRI_EN);
 
@@ -410,12 +471,10 @@ static void sun4i_tcon0_mode_set_cpu(struct sun4i_tcon *tcon,
 		     SUN4I_TCON0_CPU_TRI2_START_DELAY(start_delay));
 
 	/*
-	 * The Allwinner BSP has a comment that the period should be
-	 * the display clock * 15, but uses an hardcoded 3000...
+	 * U-Boot does not set SAFE_PERIOD; clear it to match.
+	 * The BSP value (3000, mode 3) is not needed for DSI CPU mode.
 	 */
-	regmap_write(tcon->regs, SUN4I_TCON_SAFE_PERIOD_REG,
-		     SUN4I_TCON_SAFE_PERIOD_NUM(3000) |
-		     SUN4I_TCON_SAFE_PERIOD_MODE(3));
+	regmap_write(tcon->regs, SUN4I_TCON_SAFE_PERIOD_REG, 0);
 
 	/* Enable the output on the pins */
 	regmap_write(tcon->regs, SUN4I_TCON0_IO_TRI_REG,

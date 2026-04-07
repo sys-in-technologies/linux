@@ -15,12 +15,27 @@
 	compatible = "allwinner,sun8i-t113s";
 
 	aliases {
-                serial0 = &uart0;
+		serial0 = &uart0;
 	};
 
-        chosen {
-               stdout-path = "serial0:115200n8";
-        };
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	framebuffer-lcd {
+		compatible = "allwinner,simple-framebuffer",
+			     "simple-framebuffer";
+		allwinner,pipeline = "mixer0-lcd0";
+		clocks = <&ccu CLK_PLL_VIDEO0>,
+			 <&ccu CLK_BUS_MIPI_DSI>,
+			 <&ccu CLK_BUS_TCON_LCD0>,
+			 <&ccu CLK_BUS_DE>,
+			 <&ccu CLK_BUS_DPSS_TOP>,
+			 <&ccu CLK_DE>,
+			 <&ccu CLK_TCON_LCD0>,
+			 <&ccu CLK_MIPI_DSI>;
+		status = "disabled";
+	};
 
 	/* board wide 5V supply directly from DC input */
 	reg_vcc5v: regulator-5v {
@@ -38,6 +53,7 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&reg_vcc5v>;
+		regulator-always-on;
 	};
 
 	/* EA3036C DC/DC regulator on the board, also supplying VDD-SYS */
@@ -50,12 +66,13 @@
 	};
 
 	/* XC6206 LDO on the board */
-	reg_2v8: regulator-vcc-panel {
+	reg_avdd2v8: regulator-avdd {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc";
+		regulator-name = "avdd2v8";
 		regulator-min-microvolt = <2800000>;
 		regulator-max-microvolt = <2800000>;
 		vin-supply = <&reg_3v3>;
+		regulator-always-on;
 	};
 
 	/* XC6206 LDO on the board */
@@ -65,6 +82,7 @@
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
 		vin-supply = <&reg_3v3>;
+		regulator-always-on;
 	};
 
 	/* XC6206 LDO on the board, just for st7703 panel compatible */
@@ -105,7 +123,7 @@
 		reg = <0x02000c00 0x400>;
 		clocks = <&dcxo>;
 		#pwm-cells = <3>;
-		status = "okay";
+		status = "disabled";
 	};
 
 	backlight: backlight {
@@ -115,6 +133,7 @@
 		   /* gpio not connect to real backligth */
 		   brightness-levels = <0 30 40 50 60 70 80 90 100>;
 		   default-brightness-level = <8>;
+		   status = "disabled";
 	};
 
 };
@@ -126,12 +145,12 @@
 	vcc-pf-supply = <&reg_3v3>;
 	vcc-pg-supply = <&reg_3v3>;
 
-        rmii_pg_pins: rmii-pg-pins {
-	        pins = "PG0", "PG1", "PG2", "PG3", "PG4",
-	        "PG5", "PG6", "PG7", "PG8", "PG10",
+	rmii_pg_pins: rmii-pg-pins {
+		pins = "PG0", "PG1", "PG2", "PG3", "PG4",
+		"PG5", "PG6", "PG7", "PG8", "PG10",
 		"PG11", "PG12", "PG13", "PG14", "PG15";
-	        function = "emac";
-        };
+		function = "emac";
+	};
 
 	uart1_pins: uart1-pins {
 		pins = "PE10", "PE11";
@@ -189,27 +208,27 @@
 };
 
 &uart1 {
-        pinctrl-names = "default";
-        pinctrl-0 = <&uart1_pins>;
-        status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1_pins>;
+	status = "okay";
 };
 
 &uart3 {
-        pinctrl-names = "default";
-        pinctrl-0 = <&uart3_pb_pins>;
-        status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart3_pb_pins>;
+	status = "okay";
 };
 
 &uart4 {
-        pinctrl-names = "default";
-        pinctrl-0 = <&uart4_pins>;
-        status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart4_pins>;
+	status = "okay";
 };
 
 &uart5 {
-        pinctrl-names = "default";
-        pinctrl-0 = <&uart5_pins>;
-        status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart5_pins>;
+	status = "okay";
 };
 
 &mmc0 {
@@ -234,12 +253,12 @@
 };
 
 &mdio {
-        phy0: ethernet-phy@0 {
-                reg = <0>;
-                motorcomm,clk-out-frequency-hz = <0>;
-                motorcomm,auto-sleep-disabled;
-                motorcomm,keep-pll-enabled;
-        };
+	phy0: ethernet-phy@0 {
+		reg = <0>;
+		motorcomm,clk-out-frequency-hz = <0>;
+		motorcomm,auto-sleep-disabled;
+		motorcomm,keep-pll-enabled;
+	};
 };
 
 &usbphy {
@@ -248,15 +267,15 @@
 };
 
 &ehci1 {
-        status = "okay";
+	status = "okay";
 };
 
 &ohci1 {
-        status = "okay";
+	status = "okay";
 };
 
 &usb_otg {
-        status = "disable";
+	status = "disable";
 };
 
 &i2c2 {
@@ -270,7 +289,7 @@
 		status = "okay";
 		interrupt-parent = <&pio>;
 		interrupts = <3 22 IRQ_TYPE_EDGE_FALLING>;
-		irq-flags = <2>;	/*1:rising 2: falling*/
+		irq-flags = <2>;        /*1:rising 2: falling*/
 		irq-gpios = <&pio 3 22 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&pio 3 19 GPIO_ACTIVE_LOW>;
 		/*touchscreen-swapped-x-y;*/
@@ -308,7 +327,7 @@
 };
 
 &dsi {
-	status = "okay";
+	status = "disabled";
 	#address-cells = <1>;
 	#size-cells = <0>;
 	vcc-dsi-supply = <&reg_1v8>;
@@ -317,7 +336,7 @@
 	panel@0 {
 		compatible = "polcd,p050h031_desc", "sitronix,st7703";
 		reg = <0>;
-		vcc-supply = <&reg_2v8>;
+		vcc-supply = <&reg_avdd2v8>;
 		iovcc-supply = <&reg_1v8>;
 		reset-gpios = <&pio 4 1 GPIO_ACTIVE_LOW>;
 		backlight = <&backlight>;
@@ -329,7 +348,8 @@
 	panel@0 {
 		compatible = "huadichuangxian,hd50004c30", "ilitek,ili9881c";
 		reg = <0>;
-		power-supply = <&reg_2v8>;
+		status = "disabled";
+		power-supply = <&reg_avdd2v8>;
 		reset-gpios = <&pio 4 1 GPIO_ACTIVE_LOW>;
 		backlight = <&backlight>;
 	};
@@ -339,7 +359,8 @@
 	panel@0 {
 		compatible = "mc101278007-40b", "ilitek,ili9881c";
 		reg = <0>;
-		power-supply = <&reg_2v8>;
+		status = "disabled";
+		power-supply = <&reg_avdd2v8>;
 		reset-gpios = <&pio 4 1 GPIO_ACTIVE_LOW>;
 		backlight = <&backlight>;
 	};
@@ -349,7 +370,8 @@
 	panel@0 {
 		compatible = "elitek,ek79007";
 		reg = <0>;
-		power-supply = <&reg_2v8>;
+		status = "disabled";
+		power-supply = <&reg_avdd2v8>;
 		reset-gpios = <&pio 4 1 GPIO_ACTIVE_LOW>;
 		backlight = <&backlight>;
 	};
@@ -364,10 +386,11 @@
 
 &de {
 	allwinner,pipelines = <&mixer0>;
-	status = "okay";
+	status = "disabled";
 };
 
 &mixer0 {
+	status = "disabled";
 	ports {
 		mixer0_out: port@1 {
 			mixer0_out_tcon_top_mixer0: endpoint {
@@ -380,6 +403,7 @@
 /delete-node/ &mixer1;
 
 &tcon_top {
+	status = "disabled";
 	ports {
 		tcon_top_mixer0_in: port@0 {
 			tcon_top_mixer0_in_mixer0: endpoint {
@@ -402,6 +426,7 @@
 };
 
 &tcon_lcd0 {
+	status = "disabled";
 	ports {
 		tcon_lcd0_in: port@0 {
 			tcon_lcd0_in_tcon_top_mixer0: endpoint@0 {
@@ -420,3 +445,7 @@
 };
 
 /delete-node/ &tcon_tv0;
+
+&dphy {
+	status = "disabled";
+};

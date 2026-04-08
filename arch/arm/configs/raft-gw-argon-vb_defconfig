@@ -5709,6 +5709,6 @@ CONFIG_ARCH_USE_MEMTEST=y
 #
 # end of Rust hacking
 # end of Kernel hacking
+CONFIG_FB=y
 CONFIG_FB_SIMPLE=y
 CONFIG_OF_CONFIGFS=y
-CONFIG_FB=y

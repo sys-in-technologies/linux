@@ -124,18 +124,20 @@
 		clocks = <&ccu CLK_BUS_PWM>, <&dcxo>;
 		clock-names = "bus", "mod";
 		resets = <&ccu RST_BUS_PWM>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwm_pin>;
 		#pwm-cells = <3>;
-		status = "disabled";
+		status = "okay";
 	};
 
 	backlight: backlight {
 		   compatible = "pwm-backlight";
-		   pwms = <&pwm 1 100000 PWM_POLARITY_INVERTED>;
+		   pwms = <&pwm 1 1000000 PWM_POLARITY_INVERTED>;
 		   power-supply = <&reg_vcc5v>;
 		   /* gpio not connect to real backligth */
 		   brightness-levels = <0 30 40 50 60 70 80 90 100>;
 		   default-brightness-level = <0>;
-		   status = "disabled";
+		   status = "okay";
 	};
 
 };
@@ -186,8 +188,7 @@
 
 	pwm_pin: pwm-pin {
 		pins = "PD17";
-		/* function = "pwm1"; */
-		function = "output";
+		function = "pwm1";
 	};
 
 };

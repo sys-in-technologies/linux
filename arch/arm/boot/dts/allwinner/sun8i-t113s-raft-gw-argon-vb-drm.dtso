@@ -52,22 +52,19 @@
                         status = "okay";
                 };
         };
-
+	/*
         fragment@6 {
                 target = <&pwm>;
                 __overlay__ {
-                        compatible = "allwinner,sun20i-d1-pwm";
-			pinctrl-names = "default";
-                        pinctrl-0 = <&pwm_pin>;
-			status = "okay";
+                        status = "okay";
                 };
         };
 
         fragment@7 {
                 target = <&backlight>;
                 __overlay__ {
-                        pwms = <&pwm 1 100000 1>;
                         status = "okay";
                 };
         };
+	*/
 };

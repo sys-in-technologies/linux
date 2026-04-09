@@ -84,6 +84,8 @@ static int sun20i_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 	val = k & PCR_PRESCAL_K_MSK;
 	if (state->polarity == PWM_POLARITY_NORMAL)
 		val |= PCR_ACT_STA;
+	else
+		val &= ~PCR_ACT_STA;
 	writel(val, sun20ichip->base + PWM_PCR(ch));
 
 	val = (((u32)cycle - 1) << 16) | (u32)duty;

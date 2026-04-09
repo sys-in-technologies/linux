@@ -119,20 +119,22 @@
 	};
 
 	pwm: pwm@2000c00 {
-		compatible = "allwinner,sun8i-h3-pwm";
+		compatible = "allwinner,sun20i-d1-pwm";
 		reg = <0x02000c00 0x400>;
-		clocks = <&dcxo>;
+		clocks = <&ccu CLK_BUS_PWM>, <&dcxo>;
+		clock-names = "bus", "mod";
+		resets = <&ccu RST_BUS_PWM>;
 		#pwm-cells = <3>;
 		status = "disabled";
 	};
 
 	backlight: backlight {
 		   compatible = "pwm-backlight";
-		   pwms = <&pwm 0 100000 PWM_POLARITY_INVERTED>;
+		   pwms = <&pwm 1 100000 PWM_POLARITY_INVERTED>;
 		   power-supply = <&reg_vcc5v>;
 		   /* gpio not connect to real backligth */
 		   brightness-levels = <0 30 40 50 60 70 80 90 100>;
-		   default-brightness-level = <8>;
+		   default-brightness-level = <0>;
 		   status = "disabled";
 	};
 
@@ -184,7 +186,8 @@
 
 	pwm_pin: pwm-pin {
 		pins = "PD17";
-		function = "pwm";
+		/* function = "pwm1"; */
+		function = "output";
 	};
 
 };

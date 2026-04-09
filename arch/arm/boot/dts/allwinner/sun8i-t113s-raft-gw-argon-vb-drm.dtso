@@ -5,65 +5,69 @@
 /plugin/;
 
 / {
-	compatible = "allwinner,sun8i-t113s";
+        compatible = "allwinner,sun8i-t113s";
 
-	fragment@0 {
-		target = <&dphy>;
-		__overlay__ {
-			status = "okay";
-		};
-	};
+        fragment@0 {
+                target = <&dphy>;
+                __overlay__ {
+                        status = "okay";
+                };
+        };
 
-	fragment@1 {
-		target = <&dsi>;
-		__overlay__ {
-			status = "okay";
-			
-			panel@0 {
-				status = "okay";
-			};
-		};
-	};
+        fragment@1 {
+                target = <&dsi>;
+                __overlay__ {
+                        status = "okay";
 
-	fragment@2 {
-		target = <&de>;
-		__overlay__ {
-			status = "okay";
-		};
-	};
+                        panel@0 {
+                                status = "okay";
+                        };
+                };
+        };
 
-	fragment@3 {
-		target = <&mixer0>;
-		__overlay__ {
-			status = "okay";
-		};
-	};
+        fragment@2 {
+                target = <&de>;
+                __overlay__ {
+                        status = "okay";
+                };
+        };
 
-	fragment@4 {
-		target = <&tcon_top>;
-		__overlay__ {
-			status = "okay";
-		};
-	};
+        fragment@3 {
+                target = <&mixer0>;
+                __overlay__ {
+                        status = "okay";
+                };
+        };
 
-	fragment@5 {
-		target = <&tcon_lcd0>;
-		__overlay__ {
-			status = "okay";
-		};
-	};
+        fragment@4 {
+                target = <&tcon_top>;
+                __overlay__ {
+                        status = "okay";
+                };
+        };
 
-	fragment@6 {
-		target = <&pwm>;
-		__overlay__ {
-			status = "okay";
-		};
-	};
+        fragment@5 {
+                target = <&tcon_lcd0>;
+                __overlay__ {
+                        status = "okay";
+                };
+        };
 
-	fragment@7 {
-		target = <&backlight>;
-		__overlay__ {
+        fragment@6 {
+                target = <&pwm>;
+                __overlay__ {
+                        compatible = "allwinner,sun20i-d1-pwm";
+			pinctrl-names = "default";
+                        pinctrl-0 = <&pwm_pin>;
 			status = "okay";
-		};
-	};
+                };
+        };
+
+        fragment@7 {
+                target = <&backlight>;
+                __overlay__ {
+                        pwms = <&pwm 1 100000 1>;
+                        status = "okay";
+                };
+        };
 };
